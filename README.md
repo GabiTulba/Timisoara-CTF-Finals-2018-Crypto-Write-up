@@ -1,7 +1,7 @@
 # Timisoara-CTF-Finals-2018-Crypto-Write-up
 ## Write-up for tasks Recap(250p) and Recess(350p)
 
-This was a 2 in one problem. We we're given a copy of the code that was running on a netcat in wich the flags were removed:<br>
+This was a 2 in one problem. We were given a copy of the code that was running on a netcat in which the flags were in some files flag1,respectively flag2:<br>
 ```python
 import signal
 import sys
@@ -131,11 +131,11 @@ def encryption():
     ct = enc_func( msg )
     print "Encryption >>>> %#x" %  ct
 ```
-Inside `encryption()` the input is a hex number wich gets decoded to an int and then actually encrypted in `enc_func(msg)`<br>
+Inside `encryption()` the input is a hex number which gets decoded to an int and then actually encrypted in `enc_func(msg)`<br>
 Now, let's focus on how the encryption works:<br>
-it takes the message, it multiplies it by 256 adds 255 `msg = msg * 0x100 + 0xFF` and the computes the polynomial `coeffs(msg)` modulo 11<sup>128</sup> (`MAGIC_NUMBER = 11` is a constant), and that's our ciphertext.<br>
+It takes the message, it multiplies it by 256 adds 255 `msg = msg * 0x100 + 0xFF` and then computes the polynomial `coeffs(msg)` modulo 11<sup>128</sup> (`MAGIC_NUMBER = 11` is a constant), and that's our ciphertext.<br>
 ### Task Recap
-Recap was the first challenge. The adversary is given 11 messages to encrypt, by succesfully encrypting the frist flag was given.<br>
+Recap was the first challenge. The adversary is given 11 messages to encrypt, by succesfully encrypting the messages, the flag is given to the adversary.<br>
 ```python
 def challenge1():
     for i in range(CERT_CNT):
@@ -149,7 +149,7 @@ def challenge1():
     print "You win challenge 1"
     print open("flag1").read()
 ```
-so basically we need to find the values of the polynomial **coeffs** in order to be able to encrypt. Note that we have an encryption oracle so practically we can find any value of the polynomial **coeffs** right? Well that's great because we can then recreate the original polynomial by creating a **Lagrange polynomial** of degree equal to the degree of the polynomial **coeffs** <br>
+so basically we need to find the coefficients of the polynomial **coeffs** in order to be able to encrypt. Note that we have an encryption oracle so practically we can find any coefficient of the polynomial **coeffs** right? Well that's great because we can then recreate the original polynomial by creating a **Lagrange polynomial** of degree equal to the degree of the polynomial **coeffs** <br>
 You can read more about it on [Wikipedia](https://en.wikipedia.org/wiki/Lagrange_polynomial), the math is pretty simple, and there's an image that visually describes very well the algorithm.
 Here's the solution for the problem:<br>
 **NOTE**: since the contest's servers don't work anymore you will have to run the challange code locally<br>
