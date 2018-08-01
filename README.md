@@ -155,7 +155,7 @@ You can read more about it on [Wikipedia](https://en.wikipedia.org/wiki/Lagrange
 
 ### Task Recess
 
-Now, the second task was the **real deal**. The adversary has to decrypt 11 messages. I didn't solve this task during the contest (I solved it about 4 hours after the contest ended, but I still got goosebumbs when I got the flag). About 3 hours before the end of the contest a hint was added (sadly, i don't remember the exact form of the hint), and eventually I found an article on [Wikipedia](https://en.wikipedia.org/wiki/Hensel%27s_lemma) and a bit of code on [GitHub](https://github.com/gmossessian/Hensel/blob/master/Hensel.py). After a good 30 minutes of reading I implemented the solution, practically for a message **msg** we had to find a root of the polynomial `f(x)=coeffs(x)-msg`. The mistake I made was that I didn't realise what this line of code was doing:
+Now, the second task was the **real deal**. The adversary has to decrypt 11 messages. I didn't solve this task during the contest (I solved it about 4 hours after the contest ended, but I still got goosebumbs when I got the flag). About 3 hours before the end of the contest a hint was added (sadly, i don't remember the exact form of the hint), and eventually I found an article on [Wikipedia](https://en.wikipedia.org/wiki/Hensel%27s_lemma) and a bit of code on [GitHub](https://github.com/gmossessian/Hensel/blob/master/Hensel.py). After a good 30 minutes of reading I implemented the solution, practically for a message **msg** we had to find a root of the polynomial `f(x)=coeffs(x)-msg`. The mistake I made was that I didn't realize what this line of code was doing:
 ```python
 msg = msg * 0x100 + 0xFF
 ```
