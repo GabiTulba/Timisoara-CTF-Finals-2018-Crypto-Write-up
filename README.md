@@ -1,5 +1,5 @@
 # Timisoara-CTF-Finals-2018-Crypto-Write-up
-## Write-up for tasks Recap(250p) and Recess(350p)
+## Write-up for tasks Recap(250p) and Recess(400p)
 
 This was a 2 in one problem. We were given a copy of the code that was running on a server in which the flags were in some files flag1, respectively flag2:<br>
 ```python
