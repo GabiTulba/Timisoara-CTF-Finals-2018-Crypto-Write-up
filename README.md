@@ -102,7 +102,7 @@ Running the code we can see a menu:<br>
 > 3. Decryption Challenge
 > 4. Exit
 
-So, we are given an encryption oracle and two challanges, encryption(**task recap**) and decryption(**task recess**)<br>
+So, we are given an encryption oracle and two challanges, encryption (**task recap**) and decryption (**task recess**)<br>
 ### Understanding the encryption
 Let's start with the encryption:<br>
 ```python
