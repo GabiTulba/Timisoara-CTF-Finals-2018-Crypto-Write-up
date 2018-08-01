@@ -135,7 +135,7 @@ Inside `encryption()` the input is a hex number which gets decoded to an int and
 Now, let's focus on how the encryption works:<br>
 It takes the message, it multiplies it by 256, adds 255 `msg = msg * 0x100 + 0xFF` and then computes the polynomial `coeffs(msg)` modulo 11<sup>128</sup> (`MAGIC_NUMBER = 11` is a constant), and that's our ciphertext.<br>
 ### Task Recap
-Recap was the first challenge. The adversary is given 11 messages to encrypt. By succesfully encrypting the messages, the flag is given to the adversary.<br>
+Recap was the first challenge. The adversary is given 11 messages to encrypt. By successfully encrypting the messages, the flag is given to the adversary.<br>
 ```python
 def challenge1():
     for i in range(CERT_CNT):
@@ -149,10 +149,19 @@ def challenge1():
     print "You win challenge 1"
     print open("flag1").read()
 ```
-so basically we need to find the coefficients of the polynomial **coeffs** in order to be able to encrypt. Note that we have an encryption oracle so practically we can find any coefficient of the polynomial **coeffs** right? Well, that's great because we can recreate the original polynomial by creating a **Lagrange polynomial** of degree equal to the degree of the polynomial **coeffs** <br>
+So basically we need to find the coefficients of the polynomial **coeffs** in order to be able to encrypt. Note that we have an encryption oracle so practically we can find any coefficient of the polynomial **coeffs** right? Well, that's great because we can recreate the original polynomial by creating a **Lagrange polynomial** of degree equal to the degree of the polynomial **coeffs** <br>
 You can read more about it on [Wikipedia](https://en.wikipedia.org/wiki/Lagrange_polynomial), the math is pretty simple, and there's an image that visually describes very well the algorithm.
-Here's my solution to the problem:<br>
 **NOTE**: since the contest's servers don't work anymore you will have to run the challange code locally<br>
+
+### Task Recess
+
+Now, the second task was the **real deal**. We have to decrypt 11 messages. I didn't solve this task during the contest (I solved it about 4 hours after the contest ended, but I still got goosebumbs when I got the flag). About 3 hours before the end of the contest a hint was added (sadly, i don't remember the exact form of the hint), and eventually I found an article on [Wikipedia](https://en.wikipedia.org/wiki/Hensel%27s_lemma) and a bit of code on [GitHub](https://github.com/gmossessian/Hensel/blob/master/Hensel.py). After a good 30 minutes of reading I implemented the solution, practically for a message **msg** we had to find a root of the polynomial `f(x)=coeffs(x)-msg`. The mistake I made was that I didn't realise what this line of code was doing:
+```python
+msg = msg * 0x100 + 0xFF
+```
+This makes it so that the encription is a bit more complicated, encription isn't just **coeffs(msg)**, it's **coeffs(g(msg))**, where **g** is another ploynomial: `g(x) = 256*x+255`. That means that Hensel's lemma had to be applied to the polynomial **coeffs(g(x))**. So I wrote a funtion that composes two polynomials.<br>
+### The code
+Here's my solution to both problems:
 ```python
 from pwn import *
 from Crypto.Util.number import inverse
@@ -160,7 +169,7 @@ from Crypto.Util.number import inverse
 MOD=11**128
 
 def transform(x):
-	return x*256+255
+	return (x*256+255)%MOD
 
 #Polynomial part
 class Polynomial(list):
@@ -168,10 +177,10 @@ class Polynomial(list):
 	def __init__(self,coeffs):
 		self.coeffs = coeffs
 
-	def evaluate(self,x):
+	def evaluate(self,x,mod):
 		val = 0
 		for i in range(len(self.coeffs)):
-			val = (val + x**i * self.coeffs[i]) % MOD
+			val = (val + x**i * self.coeffs[i]) % mod
 		return val
 
 	def raise_degree(self,x):
@@ -212,6 +221,22 @@ class Polynomial(list):
 			coeffs.add_poly(q)
 		self.coeffs=coeffs.coeffs
 
+	def calculate_derivative(self):
+		p=Polynomial([])
+		for i in range(1,len(self.coeffs)):
+			p.coeffs.append((self.coeffs[i]*i)%MOD)
+		return p
+
+	def compose(self,p):
+		P=Polynomial([])
+		q=Polynomial([1])		
+		for i in range(len(self.coeffs)):
+			q2=Polynomial(q.coeffs)
+			q2.multiply(self.coeffs[i])
+			P.add_poly(q2)
+			q.multiply_with_poly(p)
+		self.coeffs=P.coeffs
+
 	def print_poly(self):
 		return self.coeffs
 
@@ -240,6 +265,30 @@ def Lagrange_Polynomial(xylist):
 		l.multiply(ylist[i])
 		L.add_poly(l)
 	return L
+
+#Hensel's Lemma part
+def Hensel(f,d,p,k):
+	if k==1:
+		r=[]
+		for i in range(p):
+			if(f.evaluate(i,p)==0):
+				r.append(i)
+		return r	
+	r=Hensel(f,d,p,k-1)
+	new=[]
+	for i,n in enumerate(r):
+		dr=d.evaluate(n,p)
+		fr=f.evaluate(n,p**k)
+		if dr!=0:
+			for t in range(p):
+				if(f.evaluate(r[i]+t*p**(k-1),p**k)==0):
+					new.append(r[i]+t*p**(k-1))
+					break
+		if dr==0:
+			if fr%p**k==0:
+				for t in range(p):
+					new.append(r[i]+t*p**(k-1))
+	return new
 
 #Main part
 xylist=[]
@@ -275,12 +324,39 @@ s.sendline('2')
 for i in range(11):
 	s.recvuntil('Encrypt this: ')
 	x=int(s.recvline()[2:],16)
-	s.sendline(str(hex(coeffs.evaluate(transform(x)))[2:]))
+	s.sendline(str(hex(coeffs.evaluate(transform(x),MOD))[2:]))
 	print 'step',i+1,'done'
 
 print '\n'+s.recvline()
+print s.recvline()
+
+print '\nComposed polynomial'
+f=Polynomial(coeffs.coeffs)
+g=Polynomial([255,256])
+f.compose(g)
+for i,x in zip([i for i in range(11)],coeffs.print_poly()):
+	print str(i)+':',x
+
+print '\nStarting challenge 2!'
+
+s.recvuntil('Command: ')
+s.sendline('3')
+
+for i in range(11):
+	s.recvuntil('Decrypt this: ')
+	x=int(s.recvline()[2:],16)
+	print x
+	f=Polynomial(coeffs.coeffs)
+	g=Polynomial([255,256])
+	f.compose(g)
+	h=Polynomial(f.coeffs)
+	h.add_to_degree(0,-x)
+	d=f.calculate_derivative()
+	out=Hensel(h,d,11,128)
+	print coeffs.evaluate(transform(out[0]),MOD)
+	s.sendline(hex(out[0])[2:])
+	print 'step',i+1,'done'
+	
+print '\n'+s.recvline()
+print s.recvline()
 ```
-
-
-### Task Recess
-
